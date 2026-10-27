@@ -1,6 +1,8 @@
 <h1 align="center">🚀 TeleAgent2API</h1>
 <h3 align="center">OpenAI-Compatible API Gateway for TeleAgent</h3>
 
+![Go](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white) ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey) ![Type](https://img.shields.io/badge/type-API%20Gateway-blue)
+
 ---
 
 ## 📖 简介
@@ -129,6 +131,29 @@ curl -N http://localhost:10000/v1/chat/completions \
 | **系统** | 运行信息、账号池/密钥/凭证文件路径、网页登录续期入口 |
 
 > 控制台页面本身不含任何凭证，所有数据经 `/v1/admin/*` 获取，敏感值（token、密钥、代理密码）一律掩码返回。
+
+---
+
+## 📡 接口
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|---|---|---|---|
+| `GET` | `/health` | 无 | 健康检查（Docker HEALTHCHECK 用） |
+| `GET` | `/ui` | 页面公开 | Web 控制台（`/` 及未知路径自动跳转过来，数据经 `/v1/admin/*`） |
+| `GET` | `/v1/models` | 客户端密钥 | 模型列表 |
+| `POST` | `/v1/chat/completions` | 客户端密钥 | OpenAI Chat 兼容（流式 / 非流式） |
+| `GET` | `/v1/checkin` | 客户端密钥 | 签到调度状态与最近结果 |
+| `POST` | `/v1/checkin` | 客户端密钥 | 立即触发一次签到（`?account=<id>` 可指定账号） |
+| `GET` | `/auth/login` | 无 | 网页登录续期入口（302 到 TeleAgent 登录页） |
+| `GET` | `/auth/callback` | 无 | 登录回调，兑换并持久化新 token |
+| `GET` | `/v1/admin/info` | ADMIN_PASSWORD | 运行概览：token 掩码与到期、签到、代理、模型 |
+| `GET` | `/v1/admin/proxy-test` | ADMIN_PASSWORD | 出口连通性测试（返回出口 IP） |
+| `GET/POST/DELETE` | `/v1/admin/accounts` | ADMIN_PASSWORD | 账号池增删改查（掩码返回） |
+| `POST` | `/v1/admin/accounts/action` | ADMIN_PASSWORD | 账号操作：`toggle` / `checkin` / `test` / `reset` |
+| `GET` | `/v1/admin/logs` | ADMIN_PASSWORD | 最近请求日志环形缓冲 |
+| `GET/POST/PATCH/DELETE` | `/v1/admin/keys` | ADMIN_PASSWORD | 客户端密钥管理（完整密钥仅创建时返回一次） |
+| `GET` | `/v1/admin/models` | ADMIN_PASSWORD | 模型列表与用量统计 |
+| `GET/POST` | `/models`、`/chat/completions` | 客户端密钥 | 旧路径，行为与 `/v1/*` 对应端点一致 |
 
 ---
 
@@ -328,7 +353,19 @@ pwsh -ExecutionPolicy Bypass -File tools/get-teleagent-token.ps1
 
 ---
 
-## 🐳 部署建议
+## 🐳 Docker 部署
+
+镜像同时发布到 GHCR：`ghcr.io/hj01857655/teleagent`。推送 `v*` 标签后 Actions 会自动构建并发布 GHCR 镜像（linux/amd64 + linux/arm64，含 latest 与语义化版本标签）以及 linux / windows / darwin 六平台二进制 Release。
+
+```bash
+# 方式一：直接拉 GHCR 镜像
+docker pull ghcr.io/hj01857655/teleagent:latest
+
+# 方式二：本地构建（见「快速开始」）
+docker compose up -d --build
+```
+
+### 部署建议
 
 ```bash
 # 目录结构
